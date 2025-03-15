@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract TokenSale is AccessControl {
     bytes32 public constant SELLER_ROLE = keccak256("SELLER_ROLE");
     IERC20 public token;
-    uint256 public rate = 1000; // 1 ETH = 1000 MTK
+    uint256 public rate = 1000;
     uint256 public constant MAX_SUPPLY = 10000 * 10**18;
     uint256 public totalSold;
 
