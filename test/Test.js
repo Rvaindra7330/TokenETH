@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
-describe("MyToken",()=>{
+describe("Token",()=>{
   let token,owner,addr1;
   beforeEach(async()=>{
     const Token = await ethers.getContractFactory("Token");
