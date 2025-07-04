@@ -79,4 +79,29 @@ describe("Staking", () => {
     expect(stake.amount).to.equal(ethers.parseEther("50"));
     expect(await token.balanceOf(user.address)).to.equal(ethers.parseEther("950"));
   });
+  it("allows PAUSER-ROLE to pause and unpause",async()=>{
+    await staking.connect(owner).pause();
+    expect(await staking.paused()).to.be.true;
+    await staking.connect(owner).unpause();
+    expect ( await staking.paused()).to.be.false;
+  });
+  it("blocks staking when paused",async()=>{
+    await staking.connect(owner).pause();
+    await expect(staking.connect(user).stake(ethers.parseEther("100"))).to.be.revertedWithCustomError(staking, "EnforcedPause")
+  });
+  it("blocks withdrawing when paused",async()=>{
+    await staking.connect(user).stake(ethers.parseEther("100"))
+    await staking.connect(owner).pause();
+    await expect(staking.connect(user).withdraw(ethers.parseEther("100"))).to.be.revertedWithCustomError(staking, "EnforcedPause");
+  });
+  it("blocks claiming rewards when paused",async()=>{
+    await staking.connect(funder).fundRewards(ethers.parseEther("1000"));
+    await staking.connect(user).stake(ethers.parseEther("100"));
+    await staking.connect(owner).pause();
+    await expect(staking.connect(user).claimRewards()).to.be.revertedWithCustomError(staking, "EnforcedPause");
+  });
+  it("restricts pause and unpause to PAUSER_ROLE",async()=>{
+   await expect(staking.connect(user).pause()).to.be.reverted;
+   await expect(staking.connect(user).unpause()).to.be.reverted;
+  })
 });
