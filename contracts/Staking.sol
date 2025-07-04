@@ -59,7 +59,7 @@ contract Staking is AccessControl, ReentrancyGuard {
     function updateRewards(address user) internal {
         uint256 timeElapsed = block.timestamp - stakes[user].lastUpdate;
         if (stakes[user].amount > 0) {
-            rewards[user] += (stakes[user].amount * REWARD_RATE * timeElapsed) / (365 days);
+            rewards[user] += (stakes[user].amount * REWARD_RATE * timeElapsed) / (365 days * 1e18);
         }
         stakes[user].lastUpdate = block.timestamp;
     }
@@ -71,6 +71,6 @@ contract Staking is AccessControl, ReentrancyGuard {
 
     function getPendingRewards(address user) external view returns (uint256) {
         uint256 timeElapsed = block.timestamp - stakes[user].lastUpdate;
-        return rewards[user] + (stakes[user].amount * REWARD_RATE * timeElapsed) / (365 days);
+        return rewards[user] + (stakes[user].amount * REWARD_RATE * timeElapsed) / (365 days * 1e18);
     }
 }
