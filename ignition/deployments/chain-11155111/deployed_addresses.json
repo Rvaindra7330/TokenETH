@@ -1,4 +1,5 @@
 {
   "MyToken#Token": "0xd944Ea2D846b8d1219f7be9cF64b78220edc8a2c",
-  "TokenSaleModule#TokenSale": "0x2522442DD6ae57459c59946e9d4234B45a78C22C"
+  "TokenSaleModule#TokenSale": "0x2522442DD6ae57459c59946e9d4234B45a78C22C",
+  "StakingModule#Staking": "0x734Adb97656Fd4C9c50585564f58b88694549dB7"
 }

@@ -4,9 +4,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract Staking is AccessControl, ReentrancyGuard {
+contract Staking is AccessControl, ReentrancyGuard,Pausable {
     bytes32 public constant REWARD_FUNDER_ROLE = keccak256("REWARD_FUNDER_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     IERC20 public token; // MTK token
     uint256 public constant REWARD_RATE = 1e17; // 0.1 (10% APY, unitless)
 
@@ -21,14 +23,17 @@ contract Staking is AccessControl, ReentrancyGuard {
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardsClaimed(address indexed user, uint256 amount);
+    event ContractPaused(address account);
+    event contractUnpaused(address account);
 
     constructor(address _token) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(REWARD_FUNDER_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
         token = IERC20(_token);
     }
 
-    function stake(uint256 amount) external nonReentrant {
+    function stake(uint256 amount) external nonReentrant whenNotPaused {
         require(amount > 0, "Must stake positive amount");
         updateRewards(msg.sender);
         stakes[msg.sender].amount += amount;
@@ -37,7 +42,7 @@ contract Staking is AccessControl, ReentrancyGuard {
         emit Staked(msg.sender, amount);
     }
 
-    function withdraw(uint256 amount) external nonReentrant {
+    function withdraw(uint256 amount) external nonReentrant whenNotPaused {
         require(amount > 0, "Must withdraw positive amount");
         require(stakes[msg.sender].amount >= amount, "Insufficient stake");
         updateRewards(msg.sender);
@@ -47,7 +52,7 @@ contract Staking is AccessControl, ReentrancyGuard {
         emit Withdrawn(msg.sender, amount);
     }
 
-    function claimRewards() external nonReentrant {
+    function claimRewards() external nonReentrant whenNotPaused {
         updateRewards(msg.sender);
         uint256 reward = rewards[msg.sender];
         require(reward > 0, "No rewards to claim");
@@ -72,5 +77,14 @@ contract Staking is AccessControl, ReentrancyGuard {
     function getPendingRewards(address user) external view returns (uint256) {
         uint256 timeElapsed = block.timestamp - stakes[user].lastUpdate;
         return rewards[user] + (stakes[user].amount * REWARD_RATE * timeElapsed) / (365 days * 1e18);
+    }
+    //adding pausable
+    function pause() external onlyRole(PAUSER_ROLE){
+        _pause();
+        emit Paused(msg.sender);
+    }
+    function unpause() external onlyRole(PAUSER_ROLE){
+        _unpause();
+        emit Unpaused(msg.sender);
     }
 }
