@@ -25,7 +25,7 @@ contract Staking is AccessControl, ReentrancyGuard,Pausable {
     event RewardsClaimed(address indexed user, uint256 amount);
     event ContractPaused(address account);
     event contractUnpaused(address account);
-
+    error InsufficientBalance(uint256 available, uint256 required);
     constructor(address _token) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(REWARD_FUNDER_ROLE, msg.sender);
@@ -44,7 +44,9 @@ contract Staking is AccessControl, ReentrancyGuard,Pausable {
 
     function withdraw(uint256 amount) external nonReentrant whenNotPaused {
         require(amount > 0, "Must withdraw positive amount");
-        require(stakes[msg.sender].amount >= amount, "Insufficient stake");
+        if(amount > stakes[msg.sender].amount){
+            revert InsufficientBalance(stakes[msg.sender].amount, amount);
+        }
         updateRewards(msg.sender);
         stakes[msg.sender].amount -= amount;
         stakes[msg.sender].lastUpdate = block.timestamp;

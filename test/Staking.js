@@ -111,4 +111,8 @@ describe("Staking", () => {
   await expect(staking.connect(user).stake(randomAmount))
     .not.to.be.reverted;
 });
+it("should revert with InsufficientBalance", async () => {
+  await expect(staking.connect(user).withdraw(ethers.parseEther("1000")))
+    .to.be.revertedWithCustomError(staking, "InsufficientBalance");
+});
 });
