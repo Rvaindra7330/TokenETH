@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-chai-matchers");
 require("dotenv").config();
 const { INFURA_API_KEY, PRIVATE_KEY } = process.env;
 /** @type import('hardhat/config').HardhatUserConfig */

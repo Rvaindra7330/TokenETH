@@ -104,4 +104,11 @@ describe("Staking", () => {
    await expect(staking.connect(user).pause()).to.be.reverted;
    await expect(staking.connect(user).unpause()).to.be.reverted;
   })
+   it("should accept any valid stake amount", async () => {
+  // Generate between 1 wei and 100 ETH
+  const randomAmount = BigInt(Math.floor(Math.random() * 1e20)) + 1n;
+  
+  await expect(staking.connect(user).stake(randomAmount))
+    .not.to.be.reverted;
+});
 });
