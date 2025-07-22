@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract Staking is AccessControl, ReentrancyGuard,Pausable {
-    bytes32 public constant REWARD_FUNDER_ROLE = keccak256("REWARD_FUNDER_ROLE");
+contract Staking is AccessControl, ReentrancyGuard, Pausable {
+    bytes32 public constant REWARD_FUNDER_ROLE =
+        keccak256("REWARD_FUNDER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     IERC20 public token; // MTK token
     uint256 public constant REWARD_RATE = 1e17; // 0.1 (10% APY, unitless)
@@ -19,6 +20,7 @@ contract Staking is AccessControl, ReentrancyGuard,Pausable {
 
     mapping(address => Stake) public stakes;
     mapping(address => uint256) public rewards;
+    mapping(address => bytes32) public rewardCommits;
 
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
@@ -38,13 +40,16 @@ contract Staking is AccessControl, ReentrancyGuard,Pausable {
         updateRewards(msg.sender);
         stakes[msg.sender].amount += amount;
         stakes[msg.sender].lastUpdate = block.timestamp;
-        require(token.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        require(
+            token.transferFrom(msg.sender, address(this), amount),
+            "Transfer failed"
+        );
         emit Staked(msg.sender, amount);
     }
 
     function withdraw(uint256 amount) external nonReentrant whenNotPaused {
         require(amount > 0, "Must withdraw positive amount");
-        if(amount > stakes[msg.sender].amount){
+        if (amount > stakes[msg.sender].amount) {
             revert InsufficientBalance(stakes[msg.sender].amount, amount);
         }
         updateRewards(msg.sender);
@@ -54,38 +59,57 @@ contract Staking is AccessControl, ReentrancyGuard,Pausable {
         emit Withdrawn(msg.sender, amount);
     }
 
-    function claimRewards() external nonReentrant whenNotPaused {
+    function claimRewards(
+        uint256 _amount,
+        string calldata _secret
+    ) external nonReentrant whenNotPaused {
+        // Verify commit
+        bytes32 committedHash = rewardCommits[msg.sender];
+        bytes32 computedHash = keccak256(abi.encodePacked(_amount, _secret));
+        require(committedHash == computedHash, "Invalid claim");
         updateRewards(msg.sender);
         uint256 reward = rewards[msg.sender];
         require(reward > 0, "No rewards to claim");
         rewards[msg.sender] = 0;
         require(token.transfer(msg.sender, reward), "Transfer failed");
+        delete rewardCommits[msg.sender];
         emit RewardsClaimed(msg.sender, reward);
+    }
+    function commitRewardClaim(bytes32 _hash) external {
+        rewardCommits[msg.sender] = _hash;
     }
 
     function updateRewards(address user) internal {
         uint256 timeElapsed = block.timestamp - stakes[user].lastUpdate;
         if (stakes[user].amount > 0) {
-            rewards[user] += (stakes[user].amount * REWARD_RATE * timeElapsed) / (365 days * 1e18);
+            rewards[user] +=
+                (stakes[user].amount * REWARD_RATE * timeElapsed) /
+                (365 days * 1e18);
         }
         stakes[user].lastUpdate = block.timestamp;
     }
 
     function fundRewards(uint256 amount) external onlyRole(REWARD_FUNDER_ROLE) {
         require(amount > 0, "Must fund positive amount");
-        require(token.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        require(
+            token.transferFrom(msg.sender, address(this), amount),
+            "Transfer failed"
+        );
     }
 
     function getPendingRewards(address user) external view returns (uint256) {
         uint256 timeElapsed = block.timestamp - stakes[user].lastUpdate;
-        return rewards[user] + (stakes[user].amount * REWARD_RATE * timeElapsed) / (365 days * 1e18);
+        return
+            rewards[user] +
+            (stakes[user].amount * REWARD_RATE * timeElapsed) /
+            (365 days * 1e18);
     }
     //adding pausable
-    function pause() external onlyRole(PAUSER_ROLE){
+    function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
         emit Paused(msg.sender);
     }
-    function unpause() external onlyRole(PAUSER_ROLE){
+    function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
         emit Unpaused(msg.sender);
     }
