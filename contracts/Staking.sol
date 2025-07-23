@@ -21,6 +21,7 @@ contract Staking is AccessControl, ReentrancyGuard, Pausable {
     mapping(address => Stake) public stakes;
     mapping(address => uint256) public rewards;
     mapping(address => bytes32) public rewardCommits;
+    mapping(address => uint256) public commitTimestamps;
 
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
@@ -63,6 +64,7 @@ contract Staking is AccessControl, ReentrancyGuard, Pausable {
         uint256 _amount,
         string calldata _secret
     ) external nonReentrant whenNotPaused {
+        require(block.timestamp < commitTimestamps[msg.sender] + 1 hours, "Commit expired");
         // Verify commit
         bytes32 committedHash = rewardCommits[msg.sender];
         bytes32 computedHash = keccak256(abi.encodePacked(_amount, _secret));
@@ -76,7 +78,9 @@ contract Staking is AccessControl, ReentrancyGuard, Pausable {
         emit RewardsClaimed(msg.sender, reward);
     }
     function commitRewardClaim(bytes32 _hash) external {
+        require(rewardCommits[msg.sender] == bytes32(0), "Claim already prepared");
         rewardCommits[msg.sender] = _hash;
+        commitTimestamps[msg.sender] = block.timestamp;
     }
 
     function updateRewards(address user) internal {
