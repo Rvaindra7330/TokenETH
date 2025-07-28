@@ -73,8 +73,8 @@ contract Staking is AccessControl, ReentrancyGuard, Pausable {
         uint256 reward = rewards[msg.sender];
         require(reward > 0, "No rewards to claim");
         rewards[msg.sender] = 0;
-        require(token.transfer(msg.sender, reward), "Transfer failed");
         delete rewardCommits[msg.sender];
+        require(token.transfer(msg.sender, reward), "Transfer failed");
         emit RewardsClaimed(msg.sender, reward);
     }
     function commitRewardClaim(bytes32 _hash) external {
