@@ -10,7 +10,12 @@ module.exports = {
     hardhat:{
       forking:{
         url:`${INFURA_MAINNET_URL}`,
-        blockNumber: 14390000
+        blockNumber: 19400000,
+        enabled: true,
+      },
+      chainId: 1,
+      accounts: {
+        accountsBalance: "10000000000000000000000" // 10,000 ETH test balance
       }
     },
     sepolia: {
